@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Vault {
+  id                    Int         @id @default(autoincrement())
+  name                  String
+  address               String      @unique
+  symbol                String
+  decimals              Int         @default(18)
+  totalSupply           String      @default("0")
+  assetsUnderManagement String      @default("0")
+  assetsInUse           String      @default("0")
+  sharePrice            String      @default("0")
+  lastUpdateBlock       Int         @default(0)
+  VaultAsset            VaultAsset?
+}
+
+model VaultAsset {
+  id          Int    @id @default(autoincrement())
+  name        String
+  address     String
+  symbol      String
+  decimals    Int    @default(18)
+  totalSupply String
+  vaultId     Int    @unique
+  vault       Vault  @relation(fields: [vaultId], references: [id])
+}

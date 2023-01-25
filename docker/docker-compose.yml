@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  coinflakes-mariadb:
+    build: ./mariadb
+    ports:
+      - "11901:3306"
+    volumes:
+      - ./mariadb/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+  coinflakes-phpmyadmin:
+    build: ./phpmyadmin
+    ports:
+      - "11902:80"
+    links:
+      - "coinflakes-mariadb:db"
