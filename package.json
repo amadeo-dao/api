@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/0xNedAlbo/coinflakes-api#readme",
   "devDependencies": {
+    "@types/bluebird": "^3.5.38",
     "@types/node": "^18.11.18",
     "prisma": "^4.9.0",
     "ts-node": "^10.9.1",
@@ -25,10 +26,15 @@
   "dependencies": {
     "@prisma/client": "^4.9.0",
     "@types/lodash": "^4.14.191",
+    "@types/urijs": "^1.19.19",
     "@types/yargs": "^17.0.20",
+    "axios": "^1.2.5",
+    "bluebird": "^3.7.2",
     "chalk": "^4.0.0",
     "ethers": "^5.7.2",
     "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "urijs": "^1.19.11",
     "yargs": "^17.6.2"
   }
 }

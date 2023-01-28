@@ -3,6 +3,18 @@ import { erc20ABI } from './erc20';
 import { getProvider } from './providers';
 
 export const vaultABI = [
+  'event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)',
+  'event Withdraw(address indexed sender, address indexed receiver, address indexed owner,uint256 assets, uint256 shares)',
+  'event Transfer(address indexed from, address indexed to, uint256 value)',
+  'event Approval(address indexed owner, address indexed spender, uint256 value)',
+  'event WhitelistShareholder(address indexed newShareholder)',
+  'event RevokeShareholder(address indexed newShareholder)',
+  'event ChangeManager(address indexed newManager, address indexed oldManager)',
+  'event UseAssets(address indexed receiver, uint256 amount)',
+  'event ReturnAssets(address indexed sender, uint256 amount)',
+  'event Gains(uint256 amount)',
+  'event Loss(uint256 amount)',
+  'event Fees(uint256 amount)',
   'function asset() public view returns (address)',
   'function assetsUnderManagement() public view returns (uint256)',
   'function convertToAssets() public view returns (uint256)',

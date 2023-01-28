@@ -11,17 +11,19 @@ datasource db {
 }
 
 model Vault {
-  id                    Int         @id @default(autoincrement())
-  name                  String
-  address               String      @unique
-  symbol                String
-  decimals              Int         @default(18)
-  totalSupply           String      @default("0")
-  assetsUnderManagement String      @default("0")
-  assetsInUse           String      @default("0")
-  sharePrice            String      @default("0")
-  lastUpdateBlock       Int         @default(0)
-  VaultAsset            VaultAsset?
+  id                          Int                           @id @default(autoincrement())
+  name                        String
+  address                     String                        @unique
+  symbol                      String
+  decimals                    Int                           @default(18)
+  totalSupply                 String                        @default("0")
+  assetsUnderManagement       String                        @default("0")
+  assetsInUse                 String                        @default("0")
+  sharePrice                  String                        @default("0")
+  lastUpdateBlock             Int                           @default(0)
+  VaultAsset                  VaultAsset?
+  VaultShareholder            VaultShareholder[]
+  VaultShareholderTransaction VaultShareholderTransaction[]
 }
 
 model VaultAsset {
@@ -33,4 +35,30 @@ model VaultAsset {
   totalSupply String
   vaultId     Int    @unique
   vault       Vault  @relation(fields: [vaultId], references: [id])
+}
+
+model VaultShareholder {
+  id                          Int                           @id @default(autoincrement())
+  address                     String                        @unique
+  shares                      String                        @default("0")
+  isRemoved                   Boolean                       @default(false)
+  vaultId                     Int
+  vault                       Vault                         @relation(fields: [vaultId], references: [id])
+  VaultShareholderTransaction VaultShareholderTransaction[]
+}
+
+model VaultShareholderTransaction {
+  id            Int              @id @default(autoincrement())
+  assets        String
+  shares        String
+  isDeposit     Boolean
+  when          DateTime         @default(now())
+  txHash        String
+  txIndex       Int
+  shareholderId Int
+  shareholder   VaultShareholder @relation(fields: [shareholderId], references: [id])
+  vaultId       Int
+  vault         Vault            @relation(fields: [vaultId], references: [id])
+
+  @@unique([shareholderId, txHash, txIndex])
 }
