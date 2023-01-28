@@ -36,6 +36,7 @@ export async function scanVault(address?: string): Promise<CLIResult> {
   let events;
   try {
     events = await etherscan().getLogEvents(address, vault.lastUpdateBlock);
+    let currentUpdateBlock = vault.lastUpdateBlock;
     const results = await asyncMap(events, async (event) => {
       let parsed;
       try {
@@ -44,9 +45,12 @@ export async function scanVault(address?: string): Promise<CLIResult> {
         if (e?.message?.match(/no matching event/)) return error('unknown topic0: ' + event.topics[0], 6);
         else return error(e.toString(), 4);
       }
+      currentUpdateBlock = event.blockNumber;
       switch (parsed.name) {
         case 'WhitelistShareholder':
           return await handleWhitelistShareholder(vault, parsed.args.newShareholder);
+        case 'RevokeShareholder':
+          return await handleRevokeShareholder(vault, parsed.args.newShareholder);
         case 'Deposit':
           return await handleDeposit(vault, event, parsed.args as unknown as DepositEvent);
         case 'Withdraw':
@@ -55,6 +59,7 @@ export async function scanVault(address?: string): Promise<CLIResult> {
           return error('ignored event: ' + parsed.name, 6);
       }
     });
+    await prisma.vault.update({ data: { lastUpdateBlock: currentUpdateBlock }, where: { id: vault.id } });
     return success(results.reduce((memo, result) => memo + '\n' + result?.message, ''));
   } catch (e: any) {
     if (e?.message && !e.message.match(/No records found/)) return error('Etherscan API returned error: ' + e, 5);
@@ -68,6 +73,13 @@ async function handleWhitelistShareholder(vault: Vault, newShareholder: string):
   if (!shareholder) await prisma.vaultShareholder.create({ data: { address: newShareholder, vaultId: vault.id } });
   else await prisma.vaultShareholder.update({ where: { id: shareholder.id }, data: { isRemoved: false } });
   return success('WhitelistShareholder event handled for vault ' + vault.address + ', shareholder ' + newShareholder);
+}
+
+async function handleRevokeShareholder(vault: Vault, newShareholder: string): Promise<CLIResult> {
+  const shareholder = await prisma.vaultShareholder.findFirst({ where: { address: newShareholder, vaultId: vault.id } });
+  if (!shareholder) await prisma.vaultShareholder.create({ data: { address: newShareholder, vaultId: vault.id } });
+  else await prisma.vaultShareholder.update({ where: { id: shareholder.id }, data: { isRemoved: true } });
+  return success('RevokeShareholder event handled for vault ' + vault.address + ', shareholder ' + newShareholder);
 }
 
 async function handleDeposit(vault: Vault, event: EtherscanLogEvent, log: DepositEvent): Promise<CLIResult> {
