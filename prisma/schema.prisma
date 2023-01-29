@@ -11,19 +11,20 @@ datasource db {
 }
 
 model Vault {
-  id                          Int                           @id @default(autoincrement())
-  name                        String
-  address                     String                        @unique
-  symbol                      String
-  decimals                    Int                           @default(18)
-  totalSupply                 String                        @default("0")
-  assetsUnderManagement       String                        @default("0")
-  assetsInUse                 String                        @default("0")
-  sharePrice                  String                        @default("0")
-  lastUpdateBlock             Int                           @default(0)
-  VaultAsset                  VaultAsset?
-  VaultShareholder            VaultShareholder[]
-  VaultShareholderTransaction VaultShareholderTransaction[]
+  id                           Int                           @id @default(autoincrement())
+  name                         String
+  address                      String                        @unique
+  symbol                       String
+  decimals                     Int                           @default(18)
+  totalSupply                  String                        @default("0")
+  assetsUnderManagement        String                        @default("0")
+  assetsInUse                  String                        @default("0")
+  sharePrice                   String                        @default("0")
+  manager                      String                        @default("")
+  lastUpdateBlock              Int                           @default(0)
+  VaultAsset                   VaultAsset?
+  VaultShareholders            VaultShareholder[]
+  VaultShareholderTransactions VaultShareholderTransaction[]
 }
 
 model VaultAsset {

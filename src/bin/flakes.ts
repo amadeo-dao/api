@@ -24,7 +24,7 @@ const argv = yargs(process.argv.slice(2))
 const command = argv['_'][0];
 
 async function main() {
-  let result: CLIResult;
+  let result: CLIResult | CLIResult[];
   try {
     switch (command) {
       case 'add-vault':
@@ -40,13 +40,15 @@ async function main() {
     console.log(chalk.red('Unknown Error:\n') + e?.toString());
     process.exit(-1);
   }
-  if (result.errorCode === 0) {
-    console.log(result.message);
-    process.exit(0);
-  } else {
-    console.log(chalk.red('ERROR: ') + result.message);
-    process.exit(result.errorCode);
+  if (result instanceof CLIResult) {
+    result = [result];
   }
+
+  const exitCode = result.reduce((exitCode, r) => {
+    console.log(r.errorCode ? chalk.red('ERROR: ') + r.message : chalk.green('SUCCESS: ') + r.message);
+    return exitCode || r.errorCode;
+  }, 0);
+  process.exit(exitCode);
 }
 
 main();

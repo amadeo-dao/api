@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `VaultAsset` ADD COLUMN `asset` VARCHAR(191) NOT NULL DEFAULT '';

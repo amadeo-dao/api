@@ -1,12 +1,11 @@
-export type CLIResult = {
-  message: string;
-  errorCode: number;
-};
-
-export function success(message: string): CLIResult {
-  return { message, errorCode: 0 };
+export class CLIResult {
+  constructor(public message: string, public errorCode: number, public cause?: any) {}
 }
 
-export function error(message: string, errorCode: number): CLIResult {
-  return { message, errorCode };
+export function success(message: string): CLIResult {
+  return new CLIResult(message, 0);
+}
+
+export function error(message: string, errorCode: number, cause?: any): CLIResult {
+  return new CLIResult(message, errorCode, cause);
 }

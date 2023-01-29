@@ -1,4 +1,5 @@
 import { BigNumber, ethers } from 'ethers';
+import { BN_1E } from './constants';
 import { erc20ABI } from './erc20';
 import { getProvider } from './providers';
 
@@ -16,10 +17,11 @@ export const vaultABI = [
   'event Loss(uint256 amount)',
   'event Fees(uint256 amount)',
   'function asset() public view returns (address)',
-  'function assetsUnderManagement() public view returns (uint256)',
-  'function convertToAssets() public view returns (uint256)',
   'function assetsInUse() public view returns (uint256)',
+  'function assetsUnderManagement() public view returns (uint256)',
+  'function convertToAssets(uint256) public view returns (uint256)',
   'function decimals() public view returns (uint8)',
+  'function manager() public view returns (address)',
   'function name() public view returns (string)',
   'function symbol() public view returns (string)',
   'function totalAssets() public view returns (uint256)',
@@ -37,6 +39,7 @@ export type Vault = {
   assetsInUse: string;
   sharePrice: string;
   totalSupply: string;
+  manager: string;
   lastUpdateBlock: number;
 };
 
@@ -55,6 +58,8 @@ export async function importVault(address: string): Promise<Vault> {
   const contract = new ethers.Contract(address, vaultABI, provider);
   const decimals = (await contract.decimals()) as number;
   const assetAddress = (await contract.asset()) as string;
+  const manager = (await contract.manager()) as string;
+  const sharePrice = (await contract.convertToAssets(BN_1E(decimals))) as BigNumber;
   try {
     return {
       address,
@@ -65,7 +70,8 @@ export async function importVault(address: string): Promise<Vault> {
       totalSupply: ((await contract.totalSupply()) as BigNumber).toString(),
       assetsInUse: ((await contract.assetsInUse()) as BigNumber).toString(),
       assetsUnderManagement: ((await contract.totalAssets()) as BigNumber).toString(),
-      sharePrice: '0', // ((await contract.convertToAssets(BN_1E(decimals))) as BigNumber).toString(),
+      sharePrice: sharePrice.toString(),
+      manager,
       lastUpdateBlock: currentBlock
     };
   } catch (e) {

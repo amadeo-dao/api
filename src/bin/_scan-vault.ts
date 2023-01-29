@@ -5,7 +5,7 @@ import { getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
 import { CLIResult, error, success } from '../lib/cli';
 import { etherscan, EtherscanLogEvent } from '../lib/etherscan';
-import { vaultABI } from '../lib/vault';
+import { importVault, vaultABI } from '../lib/vault';
 
 const prisma = new PrismaClient();
 
@@ -21,29 +21,30 @@ export type WithdrawEvent = {
   shares: BigNumber;
 };
 
-export async function scanVault(address?: string): Promise<CLIResult> {
-  if (!address || address === '') return error('Address is required.', 3);
+export async function scanVault(address?: string): Promise<CLIResult[] | CLIResult> {
+  if (!address || address === '') return error('Address is required.', 201);
   try {
     address = getAddress(address);
   } catch (e) {
-    return error('Invalid address format: ' + address, 2);
+    return error('Invalid address format: ' + address, 202);
   }
   const vault = await prisma.vault.findFirst({ where: { address } });
-  if (!vault) return error(`Vault ${address} not found.`, 1);
+  if (!vault) return error(`Vault ${address} not found.`, 203);
+
+  const vaultImportData = await importVault(address);
 
   const iface = new ethers.utils.Interface(vaultABI);
-
   let events;
+  let currentUpdateBlock = vault.lastUpdateBlock;
   try {
     events = await etherscan().getLogEvents(address, vault.lastUpdateBlock);
-    let currentUpdateBlock = vault.lastUpdateBlock;
     const results = await asyncMap(events, async (event) => {
       let parsed;
       try {
         parsed = iface.parseLog(event);
       } catch (e: any) {
-        if (e?.message?.match(/no matching event/)) return error('unknown topic0: ' + event.topics[0], 6);
-        else return error(e.toString(), 4);
+        if (e?.message?.match(/no matching event/)) return error('unknown topic0: ' + event.topics[0], 204);
+        else return error(e.toString(), 205);
       }
       currentUpdateBlock = event.blockNumber;
       switch (parsed.name) {
@@ -59,12 +60,21 @@ export async function scanVault(address?: string): Promise<CLIResult> {
           return error('ignored event: ' + parsed.name, 6);
       }
     });
-    await prisma.vault.update({ data: { lastUpdateBlock: currentUpdateBlock }, where: { id: vault.id } });
+
     return success(results.reduce((memo, result) => memo + '\n' + result?.message, ''));
   } catch (e: any) {
-    if (e?.message && !e.message.match(/No records found/)) return error('Etherscan API returned error: ' + e, 5);
+    if (e?.message && !e.message.match(/No records found/)) return error('Etherscan API returned error: ' + e, 206);
     events = [];
   }
+  await prisma.vault.update({
+    data: {
+      assetsUnderManagement: vaultImportData.assetsUnderManagement,
+      assetsInUse: vaultImportData.assetsInUse,
+      totalSupply: vaultImportData.totalSupply,
+      sharePrice: vaultImportData.sharePrice
+    },
+    where: { id: vault.id }
+  });
   return success('Vault ' + vault.name + ' has been scanned.');
 }
 
@@ -101,14 +111,14 @@ async function handleDeposit(vault: Vault, event: EtherscanLogEvent, log: Deposi
     });
   } catch (e: any) {
     if (e?.message?.match(/unique constraint failed/i)) return success('Skipping duplicate Deposit event: ' + event.transactionHash);
-    else return error(e.toString(), 4);
+    else return error(e.toString(), 299);
   }
   return success('Deposit event handled for vault ' + vault.address + ', shareholder ' + log.owner + ', txHash ' + event.transactionHash);
 }
 
 async function handleWithdraw(vault: Vault, event: EtherscanLogEvent, log: DepositEvent): Promise<CLIResult> {
   const shareholder = await prisma.vaultShareholder.findFirst({ where: { address: log.owner, vaultId: vault.id } });
-  if (!shareholder) return error('Shareholder ' + log.owner + ' not found in vault ' + vault.address, 7);
+  if (!shareholder) return error('Shareholder ' + log.owner + ' not found in vault ' + vault.address, 208);
   const timeStamp = moment.unix(event.timeStamp).toDate();
   try {
     await prisma.vaultShareholderTransaction.create({
@@ -125,7 +135,7 @@ async function handleWithdraw(vault: Vault, event: EtherscanLogEvent, log: Depos
     });
   } catch (e: any) {
     if (e?.message?.match(/unique constraint failed/i)) return success('Skipping duplicate Withdraw event: ' + event.transactionHash);
-    else return error(e.toString(), 4);
+    else return error(e.toString(), 299);
   }
 
   return success('Withdraw event handled for vault ' + vault.address + ', shareholder ' + log.owner + ', txHash ' + event.transactionHash);

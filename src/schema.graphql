@@ -1,0 +1,45 @@
+type Vault {
+  address: String!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  totalSupply: String!
+  asset: Asset!
+  assetsInUse: String!
+  assetsUnderManagement: String!
+  sharePrice: String!
+  lastUpdateBlock: Int!
+  shareholders: [Shareholder!]!
+}
+
+type Asset {
+  address: String!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  totalSupply: String!
+}
+
+type Shareholder {
+  address: String!
+  shares: String!
+  isRemoved: Boolean!
+  transactions: [ShareholderTransaction!]!
+}
+
+enum ShareholderTransactionType {
+  DEPOSIT
+  WITHDRAW
+}
+
+type ShareholderTransaction {
+  assets: String!
+  shares: String!
+  txType: ShareholderTransactionType!
+  txHash: String!
+  timeStamp: String!
+}
+
+type Query {
+  vaults: [Vault!]!
+}

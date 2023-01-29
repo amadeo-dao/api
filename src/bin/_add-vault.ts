@@ -5,16 +5,16 @@ import { CLIResult, error, success } from '../lib/cli';
 import { importVault } from '../lib/vault';
 const prisma = new PrismaClient();
 
-export async function addVault(address?: string): Promise<CLIResult> {
-  if (!address || address === '') throw new Error('** Address is invalid.');
+export async function addVault(address?: string): Promise<CLIResult | CLIResult[]> {
+  if (!address || address === '') return error('Address is required.', 101);
   try {
     address = getAddress(address);
   } catch (e) {
-    return error('Invalid address format: ' + address, 2);
+    return error('Invalid address format: ' + address, 102);
   }
   const data = await prisma.vault.findFirst({ where: { address } });
   if (!!data) {
-    return error(`Vault ${data.name} already present.`, 1);
+    return error(`Vault ${data.name} already present.`, 103);
   }
   const vault = await importVault(address);
 
@@ -28,6 +28,7 @@ export async function addVault(address?: string): Promise<CLIResult> {
       'assetsUnderManagement',
       'assetsInUse',
       'sharePrice',
+      'manager',
       'lastUpdateBlock'
     ])
   });

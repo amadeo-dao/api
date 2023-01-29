@@ -2,11 +2,24 @@
     "version": "0.2.0",
     "configurations": [
       {
+        "name": "Coinflakes API: add-vault",
+        "type": "node-terminal",
+        "request": "launch",
+        "command": "ts-node src/bin/flakes.ts add-vault 0x13ce4bc77c9f28c0b7428bf890512da6f17691b3",
+      },
+      {
         "name": "Coinflakes API: scan-vault",
         "type": "node-terminal",
         "request": "launch",
-        "command": "ts-node src/bin/flakes.ts scan-vault 0xe32a8bf47b356e6eb09f0db3300809c04ab4e02f",
+        "command": "ts-node src/bin/flakes.ts scan-vault 0x13ce4bc77c9f28c0b7428bf890512da6f17691b3",
+      },
+      {
+        "name": "Coinflakes API: flakes-ws",
+        "type": "node-terminal",
+        "request": "launch",
+        "command": "ts-node src/sbin/flakes-ws.ts",
       }
+   
     ]
   }
   
