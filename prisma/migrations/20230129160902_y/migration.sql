@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `Vault` ADD COLUMN `manager` VARCHAR(191) NOT NULL DEFAULT '';

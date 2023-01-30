@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `Vault` ADD COLUMN `lastUpdateBlock` INTEGER NOT NULL DEFAULT 0;

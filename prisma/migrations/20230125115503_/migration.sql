@@ -1,4 +1,0 @@
--- AlterTable
-ALTER TABLE `Vault` ADD COLUMN `decimals` INTEGER NOT NULL DEFAULT 18,
-    ADD COLUMN `symbol` VARCHAR(191) NULL,
-    ADD COLUMN `totalSupply` VARCHAR(191) NULL;
