@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { getAddress } from 'ethers/lib/utils';
-import _ from 'lodash';
 import { CLIResult, error, success } from '../lib/cli';
-import { importVault } from '../lib/vault';
-const prisma = new PrismaClient();
+import { db } from '../lib/db';
+import { Vault } from '../lib/vault';
 
 export async function addVault(address?: string): Promise<CLIResult | CLIResult[]> {
   if (!address || address === '') return error('Address is required.', 101);
@@ -12,28 +10,13 @@ export async function addVault(address?: string): Promise<CLIResult | CLIResult[
   } catch (e) {
     return error('Invalid address format: ' + address, 102);
   }
-  const data = await prisma.vault.findFirst({ where: { address } });
-  if (!!data) {
-    return error(`Vault ${data.name} already present.`, 103);
+  const isPresent = !!(await db.vault.findFirst({ where: { address }, select: { id: true } }));
+  if (!!isPresent) {
+    return error(`Vault ${address} already present.`, 103);
   }
-  const vault = await importVault(address);
+  const vault = await Vault.import(address);
+  await vault.save();
+  await vault.asset?.save();
 
-  const { id } = await prisma.vault.create({
-    data: _.pick(vault, [
-      'address',
-      'name',
-      'symbol',
-      'decimals',
-      'totalSupply',
-      'assetsUnderManagement',
-      'assetsInUse',
-      'sharePrice',
-      'manager',
-      'lastUpdateBlock'
-    ])
-  });
-  await prisma.vaultAsset.create({
-    data: { vaultId: id, ...vault.asset }
-  });
   return success('Vault ' + vault.name + ' has been added.');
 }

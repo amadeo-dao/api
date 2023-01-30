@@ -10,56 +10,63 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Vault {
-  id                           Int                           @id @default(autoincrement())
-  name                         String
-  address                      String                        @unique
-  symbol                       String
-  decimals                     Int                           @default(18)
-  totalSupply                  String                        @default("0")
-  assetsUnderManagement        String                        @default("0")
-  assetsInUse                  String                        @default("0")
-  sharePrice                   String                        @default("0")
-  manager                      String                        @default("")
-  lastUpdateBlock              Int                           @default(0)
-  VaultAsset                   VaultAsset?
-  VaultShareholders            VaultShareholder[]
-  VaultShareholderTransactions VaultShareholderTransaction[]
+model vault {
+  id                      Int                      @id @default(autoincrement())
+  name                    String
+  address                 String                   @unique
+  symbol                  String
+  decimals                Int                      @default(18)
+  totalSupply             String                   @default("0")
+  assetsUnderManagement   String                   @default("0")
+  assetsInUse             String                   @default("0")
+  sharePrice              String                   @default("0")
+  manager                 String                   @default("")
+  lastUpdateBlock         Int                      @default(0)
+  asset                   asset?
+  shareholders            shareholder[]
+  shareholderTransactions shareholderTransaction[]
+
+  @@map("vaults")
 }
 
-model VaultAsset {
-  id          Int    @id @default(autoincrement())
-  name        String
-  address     String
-  symbol      String
-  decimals    Int    @default(18)
-  totalSupply String
-  vaultId     Int    @unique
-  vault       Vault  @relation(fields: [vaultId], references: [id])
+model asset {
+  id       Int    @id @default(autoincrement())
+  name     String
+  address  String
+  symbol   String
+  decimals Int    @default(18)
+  vaultId  Int    @unique
+  vault    vault  @relation(fields: [vaultId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("assets")
 }
 
-model VaultShareholder {
-  id                          Int                           @id @default(autoincrement())
-  address                     String                        @unique
-  shares                      String                        @default("0")
-  isRemoved                   Boolean                       @default(false)
-  vaultId                     Int
-  vault                       Vault                         @relation(fields: [vaultId], references: [id])
-  VaultShareholderTransaction VaultShareholderTransaction[]
+model shareholder {
+  id                     Int                      @id @default(autoincrement())
+  address                String                   @unique
+  shares                 String                   @default("0")
+  assetBalance           String                   @default("0")
+  vaultId                Int
+  vault                  vault                    @relation(fields: [vaultId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ShareholderTransaction shareholderTransaction[]
+
+  @@unique([vaultId, address])
+  @@map("shareholders")
 }
 
-model VaultShareholderTransaction {
-  id            Int              @id @default(autoincrement())
+model shareholderTransaction {
+  id            Int         @id @default(autoincrement())
   assets        String
   shares        String
   isDeposit     Boolean
-  when          DateTime         @default(now())
+  when          DateTime    @default(now())
   txHash        String
   txIndex       Int
   shareholderId Int
-  shareholder   VaultShareholder @relation(fields: [shareholderId], references: [id])
+  shareholder   shareholder @relation(fields: [shareholderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   vaultId       Int
-  vault         Vault            @relation(fields: [vaultId], references: [id])
+  vault         vault       @relation(fields: [vaultId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([shareholderId, txHash, txIndex])
+  @@map("shareholderTxs")
 }

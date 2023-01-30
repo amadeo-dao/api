@@ -18,6 +18,12 @@
         "type": "node-terminal",
         "request": "launch",
         "command": "ts-node src/sbin/flakes-ws.ts",
+      },
+      {
+        "name": "Coinflakes API: flakes-syncd",
+        "type": "node-terminal",
+        "request": "launch",
+        "command": "ts-node src/sbin/flakes-syncd.ts",
       }
    
     ]

@@ -23,8 +23,8 @@ type Asset {
 type Shareholder {
   address: String!
   shares: String!
-  isRemoved: Boolean!
   transactions: [ShareholderTransaction!]!
+  assetBalance: String!
 }
 
 enum ShareholderTransactionType {

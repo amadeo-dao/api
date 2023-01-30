@@ -1,6 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
+import { Asset } from './asset';
 import { BN_1E } from './constants';
-import { erc20ABI } from './erc20';
+import { db } from './db';
 import { getProvider } from './providers';
 
 export const vaultABI = [
@@ -18,7 +19,7 @@ export const vaultABI = [
   'event Fees(uint256 amount)',
   'function asset() public view returns (address)',
   'function assetsInUse() public view returns (uint256)',
-  'function assetsUnderManagement() public view returns (uint256)',
+  'function balanceOf(address) public view returns (uint256)',
   'function convertToAssets(uint256) public view returns (uint256)',
   'function decimals() public view returns (uint8)',
   'function manager() public view returns (address)',
@@ -28,13 +29,13 @@ export const vaultABI = [
   'function totalSupply() public view returns (uint256)'
 ];
 
-export type Vault = {
+export type VaultConstructorProps = {
   id?: number;
   address: string;
   name: string;
   symbol: string;
   decimals: number;
-  asset: VaultAsset;
+  asset: Asset;
   assetsUnderManagement: string;
   assetsInUse: string;
   sharePrice: string;
@@ -43,55 +44,120 @@ export type Vault = {
   lastUpdateBlock: number;
 };
 
-export type VaultAsset = {
+export class Vault {
   id?: number;
   address: string;
   name: string;
   symbol: string;
   decimals: number;
+  asset: Asset;
+  assetsUnderManagement: string;
+  assetsInUse: string;
+  sharePrice: string;
   totalSupply: string;
-};
+  manager: string;
+  lastUpdateBlock: number;
 
-export async function importVault(address: string): Promise<Vault> {
-  const provider = getProvider();
-  const currentBlock = (await provider.getBlockNumber()) as number;
-  const contract = new ethers.Contract(address, vaultABI, provider);
-  const decimals = (await contract.decimals()) as number;
-  const assetAddress = (await contract.asset()) as string;
-  const manager = (await contract.manager()) as string;
-  const sharePrice = (await contract.convertToAssets(BN_1E(decimals))) as BigNumber;
-  try {
-    return {
-      address,
-      name: (await contract.name()) as string,
-      symbol: (await contract.symbol()) as string,
-      decimals,
-      asset: await importVaultAsset(assetAddress),
-      totalSupply: ((await contract.totalSupply()) as BigNumber).toString(),
-      assetsInUse: ((await contract.assetsInUse()) as BigNumber).toString(),
-      assetsUnderManagement: ((await contract.totalAssets()) as BigNumber).toString(),
-      sharePrice: sharePrice.toString(),
-      manager,
-      lastUpdateBlock: currentBlock
-    };
-  } catch (e) {
-    throw new Error('** Unable to load contract at ' + address + ': ' + e);
+  constructor(props: VaultConstructorProps) {
+    this.id = props.id;
+    this.address = props.address;
+    this.name = props.name;
+    this.symbol = props.symbol;
+    this.decimals = props.decimals;
+    this.asset = props.asset;
+    this.assetsUnderManagement = props.assetsUnderManagement;
+    this.assetsInUse = props.assetsInUse;
+    this.sharePrice = props.sharePrice;
+    this.totalSupply = props.totalSupply;
+    this.manager = props.manager;
+    this.lastUpdateBlock = props.lastUpdateBlock;
   }
-}
 
-export async function importVaultAsset(address: string): Promise<VaultAsset> {
-  const provider = getProvider();
-  const contract = new ethers.Contract(address, erc20ABI, provider);
-  const decimals = (await contract.decimals()) as number;
-  try {
-    return {
+  async save(): Promise<Vault> {
+    if (!this.id) {
+      const { id } = await db.vault.create({
+        data: { ...this, asset: undefined },
+        include: { asset: false }
+      });
+      this.id = id;
+    } else {
+      const { id } = await db.vault.upsert({
+        where: { id: this.id },
+        create: { ...this, asset: undefined },
+        update: { ...this, asset: undefined },
+        include: { asset: false }
+      });
+      this.id = id;
+    }
+    this.asset.vaultId = this.id;
+    return this;
+  }
+
+  async sync(): Promise<Vault> {
+    const provider = getProvider();
+    const contract = new ethers.Contract(this.address, vaultABI, provider);
+    this.lastUpdateBlock = (await provider.getBlockNumber()) as number;
+    this.totalSupply = (await contract.totalSupply()).toString();
+    this.assetsUnderManagement = (await contract.totalAssets()).toString();
+    this.assetsInUse = (await contract.assetsInUse()).toString();
+    this.sharePrice = (await contract.convertToAssets(BN_1E(this.decimals))).toString();
+    await this.save();
+    return this;
+  }
+
+  static async load(id: number): Promise<Vault | null> {
+    const data = await db.vault.findUnique({
+      where: { id },
+      include: { asset: true }
+    });
+    if (!data) return null;
+    if (!data.asset) throw new Error('vault database entry has no related asset entry');
+    return new Vault({ ...data, asset: new Asset(data.asset) });
+  }
+
+  static async loadByAddress(address: string): Promise<Vault | null> {
+    const data = await db.vault.findUnique({
+      where: { address },
+      include: { asset: true }
+    });
+    if (!data) return null;
+    if (!data.asset) throw new Error('vault database entry has no related asset entry');
+    return new Vault({
+      ...data,
+      asset: new Asset(data.asset)
+    });
+  }
+
+  static async import(address: string): Promise<Vault> {
+    const provider = getProvider();
+    const lastUpdateBlock = (await provider.getBlockNumber()) as number;
+    const contract = new ethers.Contract(address, vaultABI, provider);
+    const decimals = (await contract.decimals()) as number;
+    const [name, symbol, totalSupply, assetAddress, assetInUse, assetsUnderManagement, manager, sharePrice] = await Promise.all([
+      (await contract.name()) as string,
+      (await contract.symbol()) as string,
+      ((await contract.totalSupply()) as BigNumber).toString(),
+      (await contract.asset()) as string,
+      (await contract.assetsInUse()) as BigNumber,
+      (await contract.totalAssets()) as BigNumber,
+      (await contract.manager()) as string,
+      (await contract.convertToAssets(BN_1E(decimals))) as BigNumber
+    ]);
+
+    const asset = await Asset.import(assetAddress);
+
+    return new Vault({
       address,
-      name: (await contract.name()) as string,
-      symbol: (await contract.symbol()) as string,
+      name,
+      symbol,
       decimals,
-      totalSupply: ((await contract.totalSupply()) as BigNumber).toString()
-    };
-  } catch (e) {
-    throw new Error('** Unable to load contract at ' + address + ': ' + e);
+      asset,
+      assetsUnderManagement: assetsUnderManagement.toString(),
+      assetsInUse: assetInUse.toString(),
+      sharePrice: sharePrice.toString(),
+      totalSupply,
+      manager,
+      lastUpdateBlock
+    });
   }
 }
