@@ -25,13 +25,11 @@ async function handleDeposit(vaultAddress: string, shareholderAddress: string, a
   if (!vault || !vault.id) return;
   logger.info('new deposit', { vault, shareholderAddress, assets, shares });
   await vault.sync();
-  logger.info('synced vault', { vault });
   let shareholder = await Shareholder.loadByAddress(vault.id, shareholderAddress);
   if (!shareholder) {
     shareholder = await Shareholder.import(vault.address, shareholderAddress);
     shareholder.vaultId = vault.id;
     shareholder = await shareholder.save();
-    logger.info('new shareholder', { shareholder });
   } else {
     shareholder = await shareholder.sync();
     logger.info('synced shareholder', { shareholder });

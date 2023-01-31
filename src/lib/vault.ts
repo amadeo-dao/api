@@ -2,6 +2,7 @@ import { BigNumber, ethers } from 'ethers';
 import { Asset } from './asset';
 import { BN_1E } from './constants';
 import { db } from './db';
+import { logger } from './logger';
 import { getProvider } from './providers';
 
 export const vaultABI = [
@@ -80,6 +81,7 @@ export class Vault {
         include: { asset: false }
       });
       this.id = id;
+      logger.info('added new vault', { vault: this });
     } else {
       const { id } = await db.vault.upsert({
         where: { id: this.id },
@@ -102,6 +104,7 @@ export class Vault {
     this.assetsInUse = (await contract.assetsInUse()).toString();
     this.sharePrice = (await contract.convertToAssets(BN_1E(this.decimals))).toString();
     await this.save();
+    logger.info('synced vault', { vault: this });
     return this;
   }
 

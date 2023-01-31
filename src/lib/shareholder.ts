@@ -1,6 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
 import { db } from './db';
 import { erc20ABI } from './erc20';
+import { logger } from './logger';
 import { getProvider } from './providers';
 import { Vault, vaultABI } from './vault';
 
@@ -38,6 +39,7 @@ export class Shareholder {
     if (!this.id) {
       const { id } = await db.shareholder.create({ data: { ...this } });
       this.id = id;
+      logger.info('new shareholder', { shareholder: this });
     } else {
       const { id } = await db.shareholder.upsert({
         where: { id: this.id },
@@ -59,6 +61,7 @@ export class Shareholder {
     this.shares = (await vaultContract.balanceOf(this.address)).toString();
     this.assetBalance = (await assetContract.balanceOf(this.address)).toString();
     await this.save();
+    logger.info('synced shareholder', { shareholder: this });
     return this;
   }
 

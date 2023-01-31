@@ -24,7 +24,14 @@
         "type": "node-terminal",
         "request": "launch",
         "command": "ts-node src/sbin/flakes-syncd.ts",
-      }
+      },
+      {
+        "name": "Coinflakes API: run all tests",
+        "type": "node-terminal",
+        "request": "launch",
+        "command": "mocha --exit --require ts-node/register --recursive 'test/**/*.test.ts'"
+      },
+
    
     ]
   }
