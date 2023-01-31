@@ -20,7 +20,6 @@ const provider = getProvider() as JsonRpcProvider;
 
 describe('flakes-syncd -> handleDeposit', () => {
   before('reset database', async () => {
-    console.log('reset database');
     await db.vault.deleteMany({ where: {} });
     await addVault(config.vault);
   });
@@ -30,7 +29,6 @@ describe('flakes-syncd -> handleDeposit', () => {
   let contract: ethers.Contract;
   let asset: ethers.Contract;
   before('add shareholder to allow list', async () => {
-    console.log('add shareholder to allow list');
     contract = new ethers.Contract(config.vault, vaultABI, provider);
     manager = provider.getSigner(config.manager);
     shareholder = provider.getSigner(config.shareholder);
@@ -42,7 +40,6 @@ describe('flakes-syncd -> handleDeposit', () => {
 
   let flakesSync: FlakesSyncd;
   before('start flakes-syncd', async () => {
-    console.log('start flakes-syncd');
     flakesSync = new FlakesSyncd();
     await flakesSync.sync();
   });

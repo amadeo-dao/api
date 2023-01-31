@@ -10,4 +10,4 @@ export const logger = winston.createLogger({
   transports: [new winston.transports.Console()]
 });
 
-// if (process.env.NODE_ENV === 'test') logger.transports[0].silent = true;
+if (process.env.NODE_ENV === 'test') logger.transports[0].silent = true;
