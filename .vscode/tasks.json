@@ -6,7 +6,7 @@
         {
             "label": "Start local ethereum mainnet fork",
             "type": "shell",
-            "command": "sbin/run-localhost.sh",
+            "command": "tasks/run-localhost.sh",
             "isBackground": true,
             "presentation": {
                 "echo": true,
@@ -20,7 +20,7 @@
         {
             "label": "Deploy contracts to local ethereum mainnet fork",
             "type": "shell",
-            "command": "sbin/deploy-localhost.sh",
+            "command": "tasks/deploy-localhost.sh",
             "isBackground": false,
             "presentation": {
                 "echo": true,
