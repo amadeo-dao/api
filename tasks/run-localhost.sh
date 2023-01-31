@@ -14,7 +14,7 @@ OWNER_PK=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 
 FACTORY=0x19C9770a0cfbf1f3A21E6611f0682f2bFA53c672
 
-anvil --accounts 2 --balance 300 --block-time 5 --chain-id $CHAIN_ID --fork-url $FORK_URL 1>&2 &
+anvil --accounts 2 --balance 300 --chain-id $CHAIN_ID --fork-url $FORK_URL 1>&2 &
 ANVIL_PID=$!
 [ ! -d ".dev-state" ] && mkdir .dev-state
 tail -f /dev/null 

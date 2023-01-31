@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { getProvider } from './providers';
 
 export const erc20ABI = [
+  'function approve(address, uint256) public returns (bool)',
   'function balanceOf(address) public view returns (uint256)',
   'function decimals() public view returns (uint8)',
   'function name() public view returns (string)',

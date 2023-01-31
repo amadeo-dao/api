@@ -29,7 +29,11 @@
         "name": "Coinflakes API: run all tests",
         "type": "node-terminal",
         "request": "launch",
-        "command": "mocha --exit --require ts-node/register --recursive 'test/**/*.test.ts'"
+        "command": "mocha --exit --require ts-node/register --recursive 'test/**/*.test.ts'",
+        "envFile": "${workspaceFolder}/.env.test",
+        "env": {  
+          "NODE_ENV": "test"
+        }
       },
 
    

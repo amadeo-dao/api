@@ -34,6 +34,13 @@ VAULT=`echo $VAULT | sed -r 's/^".+(.{40})"$/0x\1/'`
 echo " => $VAULT"
 echo ""
 
+JSON_OUTPUT=$(jq --null-input --arg vault "$VAULT" \
+    --arg manager "$MANAGER" \
+    --arg shareholder "$OWNER" \
+    '{"vault": $vault, manager: $manager, shareholder: $shareholder}')
+
+echo $JSON_OUTPUT > .dev-state/deployment.json
+
 ## Swap 10 ETH to any amount of USDT
 echo "Swapping 10 ETH to USDT via Curve Tricrypto2."
 cast send --from $MANAGER --rpc-url $RPC_URL --value 10000000000000000000 $CRV_TRICRYPTO2  "exchange(uint256 i, uint256 j, uint256 dx, uint256 min_dy, bool use_eth)" "2" "0"  "10000000000000000000" "1000000" "true" >/dev/null
@@ -60,5 +67,7 @@ TRANSFER_DAI=`cast tw $TRANSFER_DAI_DISPLAY`
 
 echo "Transfering $TRANSFER_DAI_DISPLAY DAI to owner."
 cast send --from $MANAGER $DAI "transfer(address,uint256)" $OWNER $TRANSFER_DAI >/dev/null
+
+
 
 exit 0

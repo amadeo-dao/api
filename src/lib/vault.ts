@@ -23,11 +23,13 @@ export const vaultABI = [
   'function balanceOf(address) public view returns (uint256)',
   'function convertToAssets(uint256) public view returns (uint256)',
   'function decimals() public view returns (uint8)',
+  'function deposit(uint256, address) public',
   'function manager() public view returns (address)',
   'function name() public view returns (string)',
   'function symbol() public view returns (string)',
   'function totalAssets() public view returns (uint256)',
-  'function totalSupply() public view returns (uint256)'
+  'function totalSupply() public view returns (uint256)',
+  'function whitelistShareholder(address) public'
 ];
 
 export type VaultConstructorProps = {
@@ -119,6 +121,7 @@ export class Vault {
   }
 
   static async loadByAddress(address: string): Promise<Vault | null> {
+    address = ethers.utils.getAddress(address);
     const data = await db.vault.findUnique({
       where: { address },
       include: { asset: true }
