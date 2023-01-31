@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prisma-reset": 
     "test": "ts-mocha"
   },
   "repository": {
