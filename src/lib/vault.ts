@@ -1,9 +1,11 @@
 import { BigNumber, ethers } from 'ethers';
+import EventEmitter from 'events';
 import { Asset } from './asset';
 import { BN_1E } from './constants';
 import { db } from './db';
 import { logger } from './logger';
 import { getProvider } from './providers';
+import { ShareholderTx } from './shareholderTx';
 
 export const vaultABI = [
   'event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)',
@@ -29,7 +31,8 @@ export const vaultABI = [
   'function symbol() public view returns (string)',
   'function totalAssets() public view returns (uint256)',
   'function totalSupply() public view returns (uint256)',
-  'function whitelistShareholder(address) public'
+  'function whitelistShareholder(address) public',
+  'function withdraw(uint256, address, address) public'
 ];
 
 export type VaultConstructorProps = {
@@ -47,7 +50,15 @@ export type VaultConstructorProps = {
   lastUpdateBlock: number;
 };
 
-export class Vault {
+export type DepositEvent = {
+  shareholderAddress: string;
+  assets: BigNumber;
+  shares: BigNumber;
+  txHash: string;
+  logIndex: number;
+};
+
+export class Vault extends EventEmitter {
   id?: number;
   address: string;
   name: string;
@@ -60,8 +71,12 @@ export class Vault {
   totalSupply: string;
   manager: string;
   lastUpdateBlock: number;
+  contract: ethers.Contract;
+
+  private stopLogEventsScan?: () => void;
 
   constructor(props: VaultConstructorProps) {
+    super();
     this.id = props.id;
     this.address = props.address;
     this.name = props.name;
@@ -74,12 +89,13 @@ export class Vault {
     this.totalSupply = props.totalSupply;
     this.manager = props.manager;
     this.lastUpdateBlock = props.lastUpdateBlock;
+    this.contract = new ethers.Contract(this.address, vaultABI, getProvider());
   }
 
   async save(): Promise<Vault> {
     if (!this.id) {
       const { id } = await db.vault.create({
-        data: { ...this, asset: undefined },
+        data: this.toDb(),
         include: { asset: false }
       });
       this.id = id;
@@ -87,13 +103,14 @@ export class Vault {
     } else {
       const { id } = await db.vault.upsert({
         where: { id: this.id },
-        create: { ...this, asset: undefined },
-        update: { ...this, asset: undefined },
+        create: this.toDb(),
+        update: this.toDb(),
         include: { asset: false }
       });
       this.id = id;
     }
     this.asset.vaultId = this.id;
+    await this.asset.save();
     return this;
   }
 
@@ -108,6 +125,45 @@ export class Vault {
     await this.save();
     logger.info('synced vault', { vault: this });
     return this;
+  }
+
+  scanLogEvents(): () => void {
+    if (this.stopLogEventsScan) return this.stopLogEventsScan;
+    const listener = async (...args: any[]) => {
+      const event = args[args.length - 1];
+      if (event.event === 'Deposit' || event.event === 'Withdraw') {
+        try {
+          const shareholderTx = await ShareholderTx.importFromEvent(event);
+          await shareholderTx.save();
+          this.emit(event.event, shareholderTx, event);
+        } catch (error) {
+          logger.error('error while importing shareholder tx', { event, error });
+        }
+      }
+    };
+    this.stopLogEventsScan = () => {
+      this.contract.off('Deposit', listener);
+      this.stopLogEventsScan = undefined;
+    };
+    this.contract.on(this.contract.filters.Deposit(), listener);
+    this.contract.on(this.contract.filters.Withdraw(), listener);
+    return this.stopLogEventsScan;
+  }
+
+  private toDb() {
+    return {
+      id: this.id,
+      address: this.address,
+      name: this.name,
+      symbol: this.symbol,
+      decimals: this.decimals,
+      assetsUnderManagement: this.assetsUnderManagement,
+      assetsInUse: this.assetsInUse,
+      sharePrice: this.sharePrice,
+      totalSupply: this.totalSupply,
+      manager: this.manager,
+      lastUpdateBlock: this.lastUpdateBlock
+    };
   }
 
   static async load(id: number): Promise<Vault | null> {

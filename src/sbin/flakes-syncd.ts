@@ -1,13 +1,12 @@
-import { PrismaClient } from '@prisma/client';
 import { BigNumber, ethers } from 'ethers';
 import EventEmitter from 'events';
+import { db } from '../lib/db';
 import { logger } from '../lib/logger';
 import { getProvider } from '../lib/providers';
 import { Shareholder } from '../lib/shareholder';
 import { Vault, vaultABI } from '../lib/vault';
 
 const provider = getProvider();
-const prisma = new PrismaClient();
 
 export class FlakesSyncd extends EventEmitter {
   isSyncing: boolean;
@@ -21,7 +20,7 @@ export class FlakesSyncd extends EventEmitter {
     if (this.isSyncing) return;
     this.isSyncing = true;
 
-    const vaults = await prisma.vault.findMany();
+    const vaults = await db.vault.findMany();
     const contracts = vaults.map((vault) => new ethers.Contract(vault.address, vaultABI, provider));
 
     contracts.forEach((contract) => {
@@ -35,7 +34,6 @@ export class FlakesSyncd extends EventEmitter {
   }
 
   private async handleDeposit(vaultAddress: string, shareholderAddress: string, assets: BigNumber, shares: BigNumber): Promise<void> {
-    this.emit('Deposit', [{ shareholderAddress, assets, shares }]);
     const vault = await Vault.loadByAddress(vaultAddress);
     if (!vault || !vault.id) return;
     logger.info('new deposit', { vault, shareholderAddress, assets, shares });
@@ -49,6 +47,7 @@ export class FlakesSyncd extends EventEmitter {
       shareholder = await shareholder.sync();
       logger.info('synced shareholder', { shareholder });
     }
+    this.emit('Deposit', [{ shareholderAddress, assets, shares }]);
   }
 }
 

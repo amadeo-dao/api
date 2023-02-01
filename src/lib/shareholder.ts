@@ -28,6 +28,12 @@ export class Shareholder {
     this.vaultId = props.vaultId;
   }
 
+  static async load(id: number): Promise<Shareholder | null> {
+    const data = await db.shareholder.findUnique({ where: { id } });
+    if (!data) return null;
+    return new Shareholder({ ...data });
+  }
+
   static async loadByAddress(vaultId: number, address: string): Promise<Shareholder | null> {
     const data = await db.shareholder.findUnique({ where: { vaultId_address: { address, vaultId } } });
     if (!data) return null;
