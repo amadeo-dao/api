@@ -28,8 +28,8 @@ type Shareholder {
 }
 
 enum ShareholderTransactionType {
-  DEPOSIT
-  WITHDRAW
+  Deposit
+  Withdraw
 }
 
 type ShareholderTransaction {

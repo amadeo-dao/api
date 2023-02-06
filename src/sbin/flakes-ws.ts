@@ -3,36 +3,33 @@ import { ApolloServer } from '@apollo/server';
 import fs from 'fs';
 
 import { startStandaloneServer } from '@apollo/server/standalone';
-import { PrismaClient } from '@prisma/client';
 import moment from 'moment';
+import { db } from '../lib/db';
 
 const typeDefs = '' + fs.readFileSync('src/schema.graphql');
-
-const prisma = new PrismaClient();
 
 const resolvers = {
   Vault: {
     asset: async (parent: any) => {
-      return prisma.vault.findUnique({ where: { address: parent.address } }).VaultAsset();
+      return db.vault.findUnique({ where: { address: parent.address } }).asset();
     },
     shareholders: async (parent: any) => {
-      return prisma.vault.findUnique({ where: { address: parent.address } }).VaultShareholders();
+      return db.vault.findUnique({ where: { address: parent.address } }).shareholders();
     }
   },
   Shareholder: {
     transactions: async (parent: any) => {
-      return prisma.vaultShareholderTransaction.findMany({
+      return db.shareholderTx.findMany({
         where: { shareholderId: parent.id, vaultId: parent.vaultId },
-        orderBy: { when: 'asc' }
+        orderBy: { timeStamp: 'asc' }
       });
     }
   },
   ShareholderTransaction: {
-    timeStamp: (parent: any) => moment(parent.when).unix(),
-    txType: (parent: any) => (parent.isDeposit ? 'DEPOSIT' : 'WITHDRAW')
+    timeStamp: (parent: any) => moment(parent.when).unix()
   },
   Query: {
-    vaults: () => prisma.vault.findMany()
+    vaults: () => db.vault.findMany()
   }
 };
 
